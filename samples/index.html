@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Editor.js</title>
+        <style>
+            body{margin:0;padding:0;font-family: Arial, Helvetica, sans-serif;font-size:16px;}
+            h1{margin:0;padding:0.5em 0 0.25em;}
+            h2{margin:0;padding:0.25em 0 0;}
+            p{margin:0;padding:0 0 0.5em 0;}
+            .container{max-width: 950px;margin:0 auto;}
+            .editor-selected{background:#fff;}
+            .flex-row{display:flex;gap:1em;}
+            .flex-row>div{flex: 1 1 auto;}
+
+            @media only screen and (max-width: 727px){
+                .flex-row{flex-direction: column;}
+            }
+
+            .save{position:fixed;right:1em;top:1em;}
+        </style>
+        <link href="../src/Editor.css" rel="stylesheet"/>
+        <script src="../src/Editor.js"></script>
+    </head>
+    <body>
+    <button class="editor-button save" onclick="console.log(Editor.prepareForm());">Enregistrer</button>
+
+    <div class="container">
+        <div data-template="h1">
+            <h1>Titre de niveau 1</h1>
+        </div>
+        <div data-template="paragraph">
+            <p>Lorem ipsum dolor sit amet, <b>consectetur adipiscing elit</b>. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+        </div>
+        <div data-template="paragraph">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+        </div>
+        <div data-template="paragraph">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna <b>ullamcorper</b> rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+        </div>
+        <div data-template="h2">
+            <h2>Titre de niveau 2</h2>
+        </div>
+        <div data-template="paragraph">
+            <p>Lorem <b>ipsum</b> dolor sit amet, <b>consectetur</b> adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+        </div>
+        <div data-template="paragraph">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+        </div>
+        <div data-template="fifty-fifty">
+            <div class="flex-row">
+                <div>
+                    <div data-template="h2">
+                        <h2>Titre de niveau 2</h2>
+                    </div>
+                    <div data-template="paragraph">
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+                    </div>
+                </div>
+                <div>
+                    <div data-template="h2"><h2>Titre de niveau 2</h2></div>
+                    <div data-template="paragraph">
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EDITOR_SETUP = {
+            h1:{
+                label:"Titre de niveau 1",
+                fields:[
+                    {
+                        label:"Titre :",
+                        tag:"input",
+                        attributes:{
+                            type:"text",
+                            name:"title"
+                        },
+                        targets:[
+                            {
+                                selector:"h1",
+                                attribute:"innerHTML"
+                            }
+                        ]
+                    }
+                ],
+                tpl:'<h1>Titre de niveau 1</h1>'
+            },
+            h2:{
+                label:"Titre de niveau 2",
+                fields:[
+                    {
+                        label:"Titre :",
+                        tag:"input",
+                        attributes:{
+                            type:"text",
+                            name:"title"
+                        },
+                        targets:[
+                            {
+                                selector:"h2",
+                                attribute:"innerHTML"
+                            }
+                        ]
+                    }
+                ],
+                tpl:'<h2>Titre de niveau 2</h2>'
+            },
+            paragraph:{
+                label:"Paragraphe",
+                fields:[
+                    {
+                        label:"Texte :",
+                        tag:"textarea",
+                        tooltip:"*Gras* : texte à mettre en gras\n-- : Espace non sécable",
+                        attributes: {
+                            spellcheck:"false",
+                            name:"content"
+                        },
+                        modifiers:{
+                            '\n':'<br>',
+                            '--':'&nbsp;',
+                            '\\*([^<*]+)\\*':'<b>[capture]<\/b>'
+                        },
+                        targets:[
+                            {
+                                selector:"p",
+                                attribute:"innerHTML"
+                            }
+                        ]
+                    }
+                ],
+                tpl:'<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>'
+            },
+            'fifty-fifty':{
+                label:"Deux colonnes",
+                tpl:'<div class="flex-row"><div><div data-template="h2"><h2>Colonne 1</h2></div></div><div><div data-template="h2"><h2>Colonne 2</h2></div></div></div>'
+            },
+            'img':{
+                label:'Image',
+                tpl:'<img src="../src/imgs/placeholder.png" alt="" style="margin:0 auto;display:block;"/>'
+            }
+        };
+    </script>
+    </body>
+</html>
