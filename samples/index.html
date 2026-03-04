@@ -13,7 +13,9 @@
             .container{max-width: 950px;margin:0 auto;}
             .editor-selected{background:#fff;}
             .flex-row{display:flex;gap:1em;}
-            .flex-row>div{flex: 1 1 auto;}
+            .flex-row>div{flex: 1 50%;display:flex;flex-direction:column;justify-content: start;}
+
+            .flex-row>div>*{flex:1 1 auto;}
 
             @media only screen and (max-width: 727px){
                 .flex-row{flex-direction: column;}
@@ -22,6 +24,7 @@
             .save{position:fixed;right:1em;top:1em;}
         </style>
         <link href="../src/Editor.css" rel="stylesheet"/>
+        <script src="https://dependencies.arnaud-nicolas.fr/?need=M4Tween"></script>
         <script src="../src/Editor.js"></script>
     </head>
     <body>
@@ -51,16 +54,18 @@
         </div>
         <div data-template="fifty-fifty">
             <div class="flex-row">
-                <div>
+                <div data-template="column">
                     <div data-template="h2">
-                        <h2>Titre de niveau 2</h2>
+                        <h2>Colonne 1</h2>
                     </div>
                     <div data-template="paragraph">
                         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
                     </div>
                 </div>
-                <div>
-                    <div data-template="h2"><h2>Titre de niveau 2</h2></div>
+                <div data-template="column">
+                    <div data-template="h2">
+                        <h2>Colonne 2</h2>
+                    </div>
                     <div data-template="paragraph">
                         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin semper, magna ullamcorper rutrum vehicula, ante metus blandit odio, quis dapibus risus elit vitae ex. Nulla facilisi. Maecenas elementum aliquam nunc, tempor vestibulum felis rutrum non. Nunc ac egestas dui. Praesent sed augue in dolor sollicitudin malesuada. Cras nec arcu justo. Ut quis nisl sit amet lorem vehicula pretium quis pretium leo. Aliquam vitae blandit felis. Aenean tincidunt ante sodales sodales semper. Aenean nec nunc sit amet mauris venenatis tincidunt et eu mauris.</p>
                     </div>
@@ -139,13 +144,57 @@
             },
             'fifty-fifty':{
                 label:"Deux colonnes",
-                tpl:'<div class="flex-row"><div><div data-template="h2"><h2>Colonne 1</h2></div></div><div><div data-template="h2"><h2>Colonne 2</h2></div></div></div>'
+                tpl:'<div class="flex-row"><div data-template="col"><div data-template="h2"><h2>Colonne 1</h2></div></div><div data-template="col"><div data-template="h2"><h2>Colonne 2</h2></div></div></div>'
             },
-            'img':{
+            img:{
                 label:'Image',
                 tpl:'<img src="../src/imgs/placeholder.png" alt="" style="margin:0 auto;display:block;"/>'
+            },
+            news:{
+                label:'News',
+                id:'id_news',
+                sources:{
+                    search: 'sources/dynamic_list.json?',
+                    entry: 'sources/retrieve_entry.php?type=article&data[id_news]=',
+                },
+                fields:[
+                    {
+                        label: "Cacher la description",
+                        class:["hide_intro"],
+                        tag: "input",
+                        attributes: {
+                            type: "checkbox",
+                            value: "1",
+                            name: "hide_intro"
+                        },
+                        targets: [
+                            {
+                                selector: "a",
+                                attribute: "data-hide_intro"
+                            }
+                        ]
+                    },
+                    {
+                        tag:"input",
+                        search:true,
+                        attributes:{
+                            type:"text",
+                            class:"search",
+                            autocomplete:"off",
+                            name:"title_news",
+                            placeholder:"Rechercher une actualité par titre"
+                        }
+                    }
+                ],
+                tpl:`<div class="news"><div><h3 class="title_news">Titre de l'actualité</h3></div>`
             }
         };
+
+        console.log(EDITOR_SETUP);
+
+        window.addEventListener('DOMContentLoaded', ()=>{
+            Editor.init(".container", EDITOR_SETUP);
+        });
     </script>
     </body>
 </html>

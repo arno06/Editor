@@ -16,7 +16,8 @@ body[data-show] .editor-add, body[data-show] .editor-add:hover{display:none;}
 body .editor-deco{pointer-events: none;}
 
 [data-template]{position:relative;cursor:pointer;}
-[data-template]:hover{z-index:70;outline:1px solid #cc0033;}
+[data-template]:hover:not(:has([data-template]:hover)){z-index:70;outline:1px solid #cc0033;}
+
 [data-template] a{pointer-events: none;}
 [data-template] .editor-actions{pointer-events: all;position:absolute;top:50%;right:0.5em;transform:translateY(-50%);display:none;}
 [data-template]:hover>.editor-actions{display:flex;}
@@ -32,12 +33,14 @@ body .editor-button.editor-loading{pointer-events:none;padding-left:33px;backgro
 
 body .editor-remove{background:#cc0033;}
 body .editor-remove:hover{background: #fa255a;}
+body .editor-remove.editor-remove[disabled]{background:#cc0033;color:#fa255a;}
 
 body .editor-add{font-family:"Arial", sans-serif;padding:0;z-index:99;position:absolute;top:0;left:50%;display:none;transform:translate(-50%, -50%);width:30px;border-radius: 50%;}
 body .editor-add.show, body .editor-add:hover{display:flex;box-shadow:0 1px 3px rgba(0, 0, 0, .3);}
 body .editor-add:hover{}
 
-body .editor-panel *{user-select: all;}
+body .editor-panel *{user-select:text;}
+body .editor-panel .editor-actions{display:flex;justify-content: center;user-select: none;}
 body .editor-panel .editor-component, body .editor-panel .editor-component .input{display:flex;flex-direction: column;gap:5px;}
 body .editor-panel .editor-component .input.upload.has_file{flex-direction:row;}
 body .editor-panel .editor-component label{font-size:0.9em;font-weight:bold;user-select: none;display:flex;align-items: center;justify-content: space-between;}

@@ -1,4 +1,11 @@
 var Editor = (function(){
+    let container = null;
+
+    /**
+     * @type {Object.<string, EditorTemplate>}
+     */
+    let editor_setup = {};
+
     let modal;
     let panel;
     let addButton;
@@ -8,36 +15,25 @@ var Editor = (function(){
     let panelSearchTO = null;
     let panelDisabled = false;
 
-    function init(){
+    function init(pSelectorContainer, pSetup){
 
-        addButton = HTMLElement.create("div", {className:["editor-add", "editor-button"], innerHTML: "+"}, document.body);
-        addButton.addEventListener('click', addBlockHandler);
+        addButton = HTMLElement.create("div", {className:["editor-add", "editor-button"], innerHTML: "+", click:addBlockHandler}, document.body);
 
-        document.querySelectorAll('[data-template]').forEach(registerBlock);
+        container = document.querySelector(pSelectorContainer)||document;
+        container.querySelectorAll('[data-template]').forEach(EditorBlock.register);
 
         let overlay = HTMLElement.create("div", {className:["editor-overlay"]}, document.body);
         overlay.addEventListener('click', hideAllHandler, true);
 
         panel = HTMLElement.create("div", {className:["editor-panel"]}, document.body);
         modal = HTMLElement.create("div", {className:["editor-modal"]}, document.body);
-    }
-
-    function registerBlock(pEl){
-        pEl.addEventListener('click', editHandler);
-        pEl.addEventListener('mouseover', showAddBlockHandler);
-        pEl.addEventListener('mouseout', hideAddBlockHandler);
-    }
-
-    function removeBlock(pEl){
-
-        let setup = EDITOR_SETUP[pEl.getAttribute("data-template")];
-        if(setup && setup.mandatory){
-            return;
+        editor_setup = {};
+        for(let i in pSetup){
+            if(!pSetup.hasOwnProperty(i)){
+                continue;
+            }
+            editor_setup[i] = EditorTemplate.from(pSetup[i]);
         }
-        pEl.removeEventListener('click', editHandler);
-        pEl.removeEventListener('mouseover', showAddBlockHandler);
-        pEl.removeEventListener('mouseout', hideAddBlockHandler);
-        pEl.remove();
     }
 
     function addBlockHandler(e){
@@ -47,16 +43,16 @@ var Editor = (function(){
 
         modal.innerHTML = "";
         let blockLists = HTMLElement.create("div", {className:["editor-tpl-list"]}, modal);
-        for(let i in EDITOR_SETUP){
-            if(!EDITOR_SETUP.hasOwnProperty(i)){
+        for(let i in editor_setup){
+            if(!editor_setup.hasOwnProperty(i)){
                 continue;
             }
 
-            let infos = EDITOR_SETUP[i];
+            let infos = editor_setup[i];
 
             if(infos.limit){
-                let existings_blocs = document.querySelectorAll('div[data-template="'+i+'"]');
-                if(existings_blocs.length >= infos.limit){
+                let existing_blocs = container.querySelectorAll('div[data-template="'+i+'"]');
+                if(existing_blocs.length >= infos.limit){
                     continue;
                 }
             }
@@ -68,20 +64,9 @@ var Editor = (function(){
                 continue;
             }
 
-            let block = HTMLElement.create("div", {className:["editor-tpl-block"]}, blockLists);
+            let block = HTMLElement.create("div", {className:["editor-tpl-block"], "data-template":i, click:EditorBlock.addFromTemplateHandler}, blockLists);
             HTMLElement.create("div", {innerHTML:tpl}, block);
             HTMLElement.create("span", {innerHTML:label}, block);
-
-            block.addEventListener("click", (e)=>{
-                let newBlock = document.createElement('div');
-                newBlock.setAttribute("data-template", i);
-                newBlock.innerHTML = tpl;
-                addRef.insertAdjacentElement(addRefPosition, newBlock);
-                registerBlock(newBlock);
-                newBlock.querySelectorAll('*[data-template]').forEach(registerBlock);
-                hideAllHandler();
-                editHandler({target:newBlock, currentTarget:newBlock});
-            });
         }
         document.body.setAttribute("data-show", "modal");
     }
@@ -119,102 +104,73 @@ var Editor = (function(){
     }
 
     function editHandler(e){
-        if(panelDisabled === true){
-            return;
-        }
         let target = e.currentTarget;
         target.scrollIntoView({ behavior: "smooth", block: "center" });
         let type = target.getAttribute("data-template");
 
-        if(!EDITOR_SETUP.hasOwnProperty(type) || !EDITOR_SETUP[type].fields){
-            return;
-        }
+        e.stopImmediatePropagation && e.stopImmediatePropagation();
 
-        let setup = EDITOR_SETUP[type];
+        let setup = editor_setup[type];
 
         target.parentNode.querySelectorAll(".editor-selected").forEach((pEl)=>{
             pEl.classList.remove("editor-selected");
         });
-        target.classList.add("editor-selected");
 
         panel.innerHTML = "";
+        let emptyPanel = true;
 
         if(setup && !setup.mandatory){
+            emptyPanel = false;
             let actions = HTMLElement.create("div", {className:["editor-actions"]}, panel);
-            let removeButton = HTMLElement.create("button", {innerHTML:"Supprimer", className:["editor-button", "editor-remove"]}, actions);
-            removeButton.addEventListener('click', (e)=>{
-                removeBlock(target);
-                hideAllHandler();
-            });
+            let removeButton = HTMLElement.create("button", {
+                innerHTML:"Supprimer",
+                className:["editor-button", "editor-remove"],
+                click:(e)=>{
+                    EditorBlock.remove(target);
+                    hideAllHandler();
+                }}, actions);
+            if(target.parentNode.querySelectorAll('[data-template]').length === 1){
+                removeButton.setAttribute("disabled", "disabled");
+            }
         }
 
-        let hasUpload = false;
+        if(panelDisabled || (!editor_setup.hasOwnProperty(type) || !setup.fields)){
+            if(!emptyPanel){
+                target.classList.add("editor-selected");
+                document.body.setAttribute("data-show", "panel");
+            }
+            if(setup.editHandler){
+                setup.editHandler(target);
+            }
+            return;
+        }
 
+        target.classList.add("editor-selected");
+
+        let hasUpload = false;
+        emptyPanel = emptyPanel && setup.fields.length===0;
         for(let i = 0, max = setup.fields.length; i<max; i++){
             let f = setup.fields[i];
+            f.attachContext(target);
             let modifiers = f.modifiers||{};
             let conditionalDisplay = f.conditionalDisplay||false;
-            let isCheckBox = f.tag === "input" && f.attributes && f.attributes.type === "checkbox";
-            let extra_attributes = {autocomplete:"off"};
-            if(f.targets){
-                let val = target.querySelector(f.targets[0].selector);
-                if(!isCheckBox){
-                    if(!val){
-                        extra_attributes.value = "";
-                    }else{
-                        switch(f.targets[0].attribute){
-                            case "innerHTML":
-                                extra_attributes.value = val[f.targets[0].attribute];
-                                break;
-                            default:
-                                extra_attributes.value = val.getAttribute(f.targets[0].attribute);
-                                break;
-                        }
-                    }
-                }else{
-                    if(val &&  val.getAttribute(f.targets[0].attribute)===f.attributes.value){
-                        extra_attributes.checked = true;
-                    }
-                }
-            }
-
-            if(extra_attributes.value && modifiers){
-                for(let i in modifiers){
-                    if(!modifiers.hasOwnProperty(i)){
-                        continue;
-                    }
-                    let regexp = i;
-                    let replace = modifiers[i];
-                    if(replace.indexOf("[capture]")>-1){
-                        let re = new RegExp("\\([^\)]+\\)");
-                        let res = re.exec(regexp);
-                        let reg = res[0];
-                        regexp = regexp.replace(re, "$1").replaceAll('\\', "");
-                        replace = replace.replace("[capture]", reg);
-                    }
-                    extra_attributes.value = extra_attributes.value.replaceAll(new RegExp(replace, "g"), regexp);
-                }
-            }
+            let isCheckBox = f.isCheckBox();
+            let extra_attributes = f.getAttributes();
 
             let id = "editor_input_"+i;
             extra_attributes.id = id;
             let extra_classes = f["class"]||[];
             let comp = HTMLElement.create("div", {className:["editor-component", ...extra_classes]}, panel);
             if(f.label){
-                let label = f.label;
-                if(f.tooltip){
-                    label += '<i title="'+f.tooltip+'">i</i>';
-                }
-                HTMLElement.create("label", {innerHTML:label, for:id}, comp);
+                HTMLElement.create("label", {innerHTML:f.getLabel(), for:id}, comp);
             }
             let container_classes = [];
-            if(f.attributes && f.attributes.type === "file"){
+            if(f.isUpload()){
                 hasUpload = true;
-                delete extra_attributes.value;
                 container_classes.push("upload");
             }
             let parentInput = HTMLElement.create("div", {className:["input", ...container_classes]}, comp);
-            let input = HTMLElement.create(f.tag, {...f.attributes, ...extra_attributes}, parentInput);
+            let input = HTMLElement.create(f.tag, extra_attributes, parentInput);
 
             if(f.hydrateFields){
                 let infoHydrate = f.hydrateFields;
@@ -241,7 +197,7 @@ var Editor = (function(){
                                         continue;
                                     }
                                     let m = infoHydrate.mapping[prop];
-                                    let mapEl = document.querySelector(m.selector);
+                                    let mapEl = container.querySelector(m.selector);
                                     switch(m.attribute){
                                         case "value":
                                         case "innerHTML":
@@ -265,7 +221,7 @@ var Editor = (function(){
             if(!f.targets||!f.targets.length){
                 continue;
             }
-            if(conditionalDisplay && !document.querySelectorAll(f.targets[0].selector).length){
+            if(conditionalDisplay && !target.querySelectorAll(f.targets[0].selector).length){
                 comp.style.display = "none";
                 continue;
             }
@@ -283,25 +239,11 @@ var Editor = (function(){
                         value = value.replaceAll(re, modifiers[i].replace(/\[capture]/, '\$1'));
                     }
                 }
-                if(e.currentTarget.nodeName.toLowerCase() === "textarea"){
-                    value = value.replace(/\n/g, "<br/>");
-                }
-                f.targets.forEach((t)=>{
-                    target.querySelectorAll(t.selector).forEach((pEl)=>{
-                        switch(t.attribute){
-                            case "innerHTML":
-                                pEl[t.attribute] = value;
-                                break;
-                            default:
-                                pEl.setAttribute(t.attribute, value);
-                                break;
-                        }
-                    });
-                });
+                f.updateTargets(value);
             });
         }
 
-        if(hasUpload){
+        if(hasUpload && UploaderJS){
             UploaderJS.init();
 
             for(let i = 0, max = setup.fields.length; i<max; i++) {
@@ -313,18 +255,7 @@ var Editor = (function(){
                 let id = "editor_input_"+i;
                 document.querySelector("#"+id).parentNode.querySelector("a.file").addEventListener("change", (e)=>{
                     let value = e.currentTarget.getAttribute("href");
-                    f.targets.forEach((t)=>{
-                        target.querySelectorAll(t.selector).forEach((pEl)=>{
-                            switch(t.attribute){
-                                case "innerHTML":
-                                    pEl[t.attribute] = value;
-                                    break;
-                                default:
-                                    pEl.setAttribute(t.attribute, value);
-                                    break;
-                            }
-                        });
-                    });
+                    f.updateTargets(value);
                 });
             }
         }
@@ -372,7 +303,7 @@ var Editor = (function(){
                         container.classList.remove("loading");
 
                         let html = "";
-                        if(pJSON.results){
+                        if(pJSON.results && pJSON.results.length){
                             html = pJSON.results.reduce((pPrevious, pResult)=>{
                                 let cls = existingsIds.indexOf(pResult.id)>-1?" disabled":"";
                                 let img = "";
@@ -389,6 +320,8 @@ var Editor = (function(){
                                     </div>`;
                                 return pPrevious;
                             }, "<div class='list_item'>")+"</div>";
+                        }else{
+                            html = "<div class='empty'>Aucun résultat ne correspond à votre recherche</div>";
                         }
                         container.innerHTML = html;
 
@@ -409,7 +342,7 @@ var Editor = (function(){
                                         M4Tween.to(target, .3, {height:newSize+"px"}).onComplete(()=>{
                                             target.removeAttribute("style");
                                         });
-                                        registerBlock(target);
+                                        EditorBlock.register(target);
                                         Editor.hidePanels();
                                     });
                             });
@@ -420,7 +353,9 @@ var Editor = (function(){
             updateList();
         }
 
-        document.body.setAttribute("data-show", "panel");
+        if(!emptyPanel){
+            document.body.setAttribute("data-show", "panel");
+        }
 
         if(setup.editHandler){
             setup.editHandler(target);
@@ -428,7 +363,7 @@ var Editor = (function(){
     }
 
     function hideAllHandler(e){
-        document.querySelector('.editor-selected')?.classList.remove("editor-selected");
+        container.querySelector('.editor-selected')?.classList.remove("editor-selected");
         document.body.removeAttribute("data-show");
     }
 
@@ -450,7 +385,7 @@ var Editor = (function(){
                 children:children
             };
             let data = {};
-            const infos = EDITOR_SETUP[tpl];
+            const infos = editor_setup[tpl];
             if(!infos){
                 pPrevious.push(block);
                 return pPrevious;
@@ -487,58 +422,183 @@ var Editor = (function(){
                 }
                 data[f.attributes.name] = value;
             }
-            console.log(data);
             pPrevious.push({
                 ...block,
                 data_block:data
             });
             return pPrevious;
         };
-        return Array.from(document.querySelectorAll("[data-template]")).reduce(extractTemplates, []);
+        return Array.from(container.querySelectorAll("[data-template]")).reduce(extractTemplates, []);
     }
 
-    HTMLElement.create = function(pTag, pProps, pParentNode = null){
-        let el = document.createElement(pTag);
+    class EditorBlock
+    {
 
-        for(let i in pProps){
-            if(!pProps.hasOwnProperty(i)){
-                continue;
+        static addFromTemplateHandler(e){
+
+            let templateName = e.currentTarget.getAttribute("data-template");
+            if(!editor_setup[templateName]){
+                return;
             }
-            switch(i){
-                case "options":
-                    if (pTag === "select"){
-                        pProps[i].forEach((pOpt)=>{
-                            el.appendChild(new Option(pOpt.label, pOpt.value));
-                        });
-                    }
-                    break;
-                case "className":
-                    el.classList.add(...pProps[i]);
-                    break;
-                case "value":
-                    if(pTag === "textarea"){
-                        el.innerHTML = pProps[i];
+            let template = editor_setup[templateName];
+            let newBlock = HTMLElement.create("div", {"data-template":templateName, innerHTML:template.tpl})
+            addRef.insertAdjacentElement(addRefPosition, newBlock);
+            EditorBlock.register(newBlock);
+            newBlock.querySelectorAll('*[data-template]').forEach(EditorBlock.register);
+            hideAllHandler();
+            let panelD = panelDisabled;
+            panelDisabled = false;
+            editHandler({target:newBlock, currentTarget:newBlock});
+            panelDisabled = panelD;
+        }
+
+        static register(pEl){
+            pEl.addEventListener('click', editHandler);
+            pEl.addEventListener('mouseover', showAddBlockHandler);
+            pEl.addEventListener('mouseout', hideAddBlockHandler);
+        }
+
+        static remove(pEl){
+            let setup = editor_setup[pEl.getAttribute("data-template")];
+            if(setup && setup.mandatory){
+                return;
+            }
+            pEl.removeEventListener('click', editHandler);
+            pEl.removeEventListener('mouseover', showAddBlockHandler);
+            pEl.removeEventListener('mouseout', hideAddBlockHandler);
+            pEl.remove();
+        }
+    }
+
+    class EditorTemplate {
+        label = "";
+        /**
+         * @type {null|number}
+         */
+        limit = null;
+        mandatory = false;
+        id = null;
+
+        /**
+         *
+         * @type {Array.<EditorFields>}
+         */
+        fields = [];
+        editHandler = ()=>{};
+        tpl = "";
+        sources = null;
+
+        /**
+         * @param {Object} pJson
+         * @returns {EditorTemplate}
+         */
+        static from(pJson){
+            let ins = Object.assign(new EditorTemplate(), pJson);
+            let fields = [];
+            for(let i in ins.fields){
+                fields.push(Object.assign(new EditorFields(), ins.fields[i]));
+            }
+            ins.fields = fields;
+            return ins;
+        }
+    }
+
+    class EditorFields{
+        attributes = {};
+        class = [];
+        conditionalDisplay = false;
+        label = "";
+        modifiers = {};
+        search = false;
+        tag = "";
+        targets = [];
+        tooltip = null;
+
+        #context = null;
+
+        attachContext(pContext){
+            this.#context = pContext;
+        }
+
+        isCheckBox(){
+            return this.tag === "input" && (this.attributes && this.attributes.type === "checkbox");
+        }
+
+        isUpload(){
+            return this.attributes && this.attributes.type === "file";
+        }
+
+        getLabel(){
+            let label = this.label;
+            if(this.tooltip){
+                label += '<i title="'+this.tooltip+'">i</i>';
+            }
+            return label;
+        }
+
+        getAttributes(){
+            let extra_attributes = {autocomplete:"off"};
+            if(this.targets.length){
+                let val = this.#context.querySelector(this.targets[0].selector);
+                if(!this.isCheckBox()){
+                    if(!val){
+                        extra_attributes.value = "";
                     }else{
-                        el.value = pProps[i];
+                        switch(this.targets[0].attribute){
+                            case "innerHTML":
+                                extra_attributes.value = val[this.targets[0].attribute];
+                                break;
+                            default:
+                                extra_attributes.value = val.getAttribute(this.targets[0].attribute);
+                                break;
+                        }
                     }
-                    break;
-                case "innerHTML":
-                    el.innerHTML = pProps[i];
-                    break;
-                default:
-                    el.setAttribute(i, pProps[i]);
-                    break;
+                }else{
+                    if(val &&  val.getAttribute(this.targets[0].attribute)===this.attributes.value){
+                        extra_attributes.checked = true;
+                    }
+                }
             }
+
+            if(extra_attributes.value && this.modifiers){
+                for(let i in this.modifiers){
+                    if(!this.modifiers.hasOwnProperty(i)){
+                        continue;
+                    }
+                    let regexp = i;
+                    let replace = this.modifiers[i];
+                    if(replace.indexOf("[capture]")>-1){
+                        let re = new RegExp("\\([^\)]+\\)");
+                        let res = re.exec(regexp);
+                        let reg = res[0];
+                        regexp = regexp.replace(re, "$1").replaceAll('\\', "");
+                        replace = replace.replace("[capture]", reg);
+                    }
+                    extra_attributes.value = extra_attributes.value.replaceAll(new RegExp(replace, "g"), regexp);
+                }
+            }
+
+            if(this.isUpload()){
+                delete extra_attributes.value;
+            }
+            return {...this.attributes, ...extra_attributes};
         }
 
-        if(pParentNode){
-            pParentNode.appendChild(el);
+        updateTargets(pValue){
+            this.targets.forEach((t)=>{
+                this.#context.querySelectorAll(t.selector).forEach((pEl)=>{
+                    switch(t.attribute){
+                        case "innerHTML":
+                            pEl[t.attribute] = pValue;
+                            break;
+                        default:
+                            pEl.setAttribute(t.attribute, pValue);
+                            break;
+                    }
+                });
+            });
         }
-
-        return el;
     }
-
-    window.addEventListener('DOMContentLoaded', init);
 
     return {
         disabledPanel:()=>{
@@ -550,6 +610,51 @@ var Editor = (function(){
             modal.innerHTML = "";
             modal.appendChild(pChild);
             document.body.setAttribute("data-show", "modal");
-        }
+        },
+        init:init
     };
 })();
+
+HTMLElement.create = function(pTag, pProps, pParentNode = null){
+    let el = document.createElement(pTag);
+
+    for(let i in pProps){
+        if(!pProps.hasOwnProperty(i)){
+            continue;
+        }
+        switch(i){
+            case "click":
+                el.addEventListener(i, pProps[i]);
+                break;
+            case "options":
+                if (pTag === "select"){
+                    pProps[i].forEach((pOpt)=>{
+                        el.appendChild(new Option(pOpt.label, pOpt.value));
+                    });
+                }
+                break;
+            case "className":
+                el.classList.add(...pProps[i]);
+                break;
+            case "value":
+                if(pTag === "textarea"){
+                    el.innerHTML = pProps[i];
+                }else{
+                    el.value = pProps[i];
+                }
+                break;
+            case "innerHTML":
+                el.innerHTML = pProps[i];
+                break;
+            default:
+                el.setAttribute(i, pProps[i]);
+                break;
+        }
+    }
+
+    if(pParentNode){
+        pParentNode.appendChild(el);
+    }
+
+    return el;
+}
